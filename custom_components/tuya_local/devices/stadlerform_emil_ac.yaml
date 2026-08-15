@@ -1,0 +1,120 @@
+name: Air conditioner
+# Stadler Form Emil (E-024) monoblock air conditioner
+# DPs identified empirically by toggling each app control (2026-08-12):
+#   1 power, 2 setpoint C, 3 current temp C, 20 fault bitfield,
+#   101 mode (1=cool, 2=dehumidify, 3=fan), 102 child lock, 103 LED display,
+#   104 fan speed (1=high, 2=low), 105 timer hours,
+#   109 F/C unit, 110 setpoint F shadow, 111 current temp F shadow
+entities:
+  - entity: climate
+    dps:
+      - id: 1
+        type: boolean
+        name: hvac_mode
+        mapping:
+          - dps_val: false
+            value: "off"
+          - dps_val: true
+            constraint: mode
+            conditions:
+              - dps_val: "1"
+                value: cool
+              - dps_val: "2"
+                value: dry
+              - dps_val: "3"
+                value: fan_only
+      - id: 101
+        type: string
+        name: mode
+        hidden: true
+      - id: 2
+        type: integer
+        name: temperature
+        range:
+          min: 16
+          max: 30
+        mapping:
+          - constraint: temperature_unit
+            conditions:
+              - dps_val: true
+                value_redirect: temp_set_f
+                range:
+                  min: 61
+                  max: 86
+      - id: 3
+        type: integer
+        name: current_temperature
+        mapping:
+          - constraint: temperature_unit
+            conditions:
+              - dps_val: true
+                value_redirect: temp_current_f
+      - id: 104
+        type: string
+        name: fan_mode
+        mapping:
+          - dps_val: "1"
+            value: high
+          - dps_val: "2"
+            value: low
+      - id: 109
+        type: boolean
+        name: temperature_unit
+        mapping:
+          - dps_val: true
+            value: F
+          - value: C
+      - id: 110
+        type: integer
+        name: temp_set_f
+        range:
+          min: 61
+          max: 86
+        hidden: true
+        optional: true
+      - id: 111
+        type: integer
+        name: temp_current_f
+        hidden: true
+        optional: true
+  - entity: lock
+    translation_key: child_lock
+    category: config
+    dps:
+      - id: 102
+        type: boolean
+        name: lock
+  - entity: light
+    translation_key: display
+    category: config
+    dps:
+      - id: 103
+        type: boolean
+        name: switch
+  - entity: binary_sensor
+    class: problem
+    category: diagnostic
+    dps:
+      - id: 20
+        type: bitfield
+        name: sensor
+        mapping:
+          - dps_val: 0
+            value: false
+          - value: true
+      - id: 20
+        type: bitfield
+        name: fault_code
+  - entity: number
+    translation_key: timer
+    class: duration
+    category: config
+    dps:
+      - id: 105
+        type: integer
+        optional: true
+        name: value
+        unit: h
+        range:
+          min: 0
+          max: 24
